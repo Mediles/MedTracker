@@ -1,106 +1,209 @@
 <!DOCTYPE html>
-<html lang="en" class="dark"> <head>
+<html lang="en" class="dark">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedTracker - Kanban Board</title>
+    <title>MedTracker - Advanced Kanban</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
     <style>
-        /* Custom styles */
         body {
             font-family: 'Inter', sans-serif;
-            /* Dark mode background */
-            background-color: #1f2937; /* gray-800 */
+            background-color: #111827; /* Even darker gray-900 */
+            color: #d1d5db; /* gray-300 */
+        }
+        .kanban-column-header {
+            border-bottom-color: #4b5563; /* gray-600 */
         }
         .kanban-column {
-            min-height: 300px; /* Ensure columns have a minimum height */
-            transition: background-color 0.2s ease-in-out; /* Smooth transition for dragover */
-            /* Dark mode column background */
-            background-color: #374151; /* gray-700 */
+            background-color: #1f2937; /* gray-800 */
+            border: 1px solid #374151; /* gray-700 */
+            min-height: 350px;
+            transition: background-color 0.3s ease;
         }
         .task-card {
-            cursor: grab; /* Indicate draggable item */
-            transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth transition for dragging */
-            position: relative; /* Needed for absolute positioning of the delete button */
-            padding-right: 2.5rem; /* Make space for the delete button */
-             /* Dark mode task card background and text */
-            background-color: #4b5563; /* gray-600 */
+            background-color: #374151; /* gray-700 */
+            border: 1px solid #4b5563; /* gray-600 */
             color: #f3f4f6; /* gray-100 */
-            border-color: #52525b; /* zinc-600 */
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            cursor: grab;
+        }
+        .task-card:hover {
+            background-color: #4b5563; /* gray-600 */
         }
         .task-card:active {
-            cursor: grabbing; /* Indicate grabbing state */
-            transform: scale(1.03); /* Slightly enlarge card when grabbed */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); /* Darker shadow */
+            cursor: grabbing;
+            transform: scale(1.03);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
         }
-        .delete-button {
-            position: absolute;
-            top: 0.5rem; /* Adjust as needed */
-            right: 0.5rem; /* Adjust as needed */
-            background: none;
-            border: none;
+        .dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+        .drag-over {
+            background-color: #374151; /* gray-700, slightly lighter to indicate drop zone */
+            border-style: dashed;
+        }
+        .delete-button, .edit-button {
             color: #9ca3af; /* gray-400 */
-            font-size: 1.2rem; /* Slightly larger 'X' */
-            font-weight: bold;
-            cursor: pointer;
-            padding: 0.25rem; /* Add some padding for easier clicking */
-            line-height: 1; /* Ensure 'X' is centered vertically */
             transition: color 0.2s ease;
         }
         .delete-button:hover {
             color: #f87171; /* red-400 */
         }
-        .dragging {
-            opacity: 0.6; /* Adjust opacity for dark mode */
+        .edit-button:hover {
+            color: #60a5fa; /* blue-400 */
         }
-        .drag-over {
-             /* Dark mode highlight on drag over */
-            background-color: #4b5563; /* gray-600 */
-        }
-        /* Confetti Canvas */
+        .priority-low { background-color: #22c55e; color: #ffffff; } /* green-500 */
+        .priority-medium { background-color: #f59e0b; color: #ffffff; } /* amber-500 */
+        .priority-high { background-color: #ef4444; color: #ffffff; } /* red-500 */
+
         #confetti-canvas {
-            position: fixed; /* Position relative to the viewport */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1000; /* Ensure it's on top */
-            pointer-events: none; /* Allow clicks to pass through */
-            display: none; /* Hidden by default */
+            z-index: 9999;
+            pointer-events: none;
+            display: none;
+        }
+        /* Custom scrollbar for task containers - optional but nice for dark mode */
+        .tasks-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .tasks-container::-webkit-scrollbar-track {
+            background: #1f2937; /* gray-800 */
+            border-radius: 10px;
+        }
+        .tasks-container::-webkit-scrollbar-thumb {
+            background: #4b5563; /* gray-600 */
+            border-radius: 10px;
+        }
+        .tasks-container::-webkit-scrollbar-thumb:hover {
+            background: #52525b; /* zinc-500 */
+        }
+        .form-input, .form-select {
+            background-color: #374151; /* gray-700 */
+            border-color: #4b5563; /* gray-600 */
+            color: #f3f4f6; /* gray-100 */
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #60a5fa; /* blue-400 */
+            ring-color: #60a5fa;
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .modal-content {
+            background-color: #1f2937; /* gray-800 */
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            min-width: 300px;
+            max-width: 500px;
         }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8 antialiased">
 
-    <h1 class="text-3xl font-bold text-center text-gray-100 mb-8">MedTracker</h1>
+    <header class="mb-10 text-center">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 mb-2">
+            MedTracker
+        </h1>
+        <p class="text-lg text-gray-400">Your Personal Medication & Task Dashboard</p>
+    </header>
 
-    <div class="mb-8 max-w-md mx-auto bg-gray-700 p-4 rounded-lg shadow-lg">
-        <h2 class="text-lg font-semibold mb-2 text-gray-200">Add New Task</h2>
-        <div class="flex space-x-2">
-            <input type="text" id="new-task-input" placeholder="Enter task description..." class="flex-grow border border-gray-500 bg-gray-600 text-gray-100 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400">
-            <button id="add-task-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out">
-                Add Task
-            </button>
+    <div class="mb-10 max-w-2xl mx-auto bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
+        <h2 class="text-2xl font-bold mb-6 text-gray-100">Add New Medication / Task</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="new-task-input" placeholder="Task or Medication Name..." class="form-input col-span-1 md:col-span-2 p-3 rounded-md focus:outline-none focus:ring-2">
+
+            <div>
+                <label for="new-task-priority" class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
+                <select id="new-task-priority" class="form-select w-full p-3 rounded-md focus:outline-none focus:ring-2">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <div>
+                <label for="new-task-due-date" class="block text-sm font-medium text-gray-300 mb-1">Due Date (Optional)</label>
+                <input type="date" id="new-task-due-date" class="form-input w-full p-3 rounded-md focus:outline-none focus:ring-2">
+            </div>
         </div>
+        <button id="add-task-button" class="mt-6 w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center space-x-2">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span>Add Task</span>
+        </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        <div id="todo-column" class="kanban-column p-4 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 text-center text-gray-200 border-b border-gray-500 pb-2">To Do</h2>
-            <div id="todo-tasks" class="space-y-3 min-h-[200px]">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
+        <div id="todo-column" class="kanban-column p-4 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold mb-4 text-center text-gray-100 border-b pb-2 kanban-column-header flex items-center justify-center space-x-2">
+                <i data-lucide="list-todo" class="w-6 h-6 text-sky-400"></i>
+                <span>To Do</span>
+            </h2>
+            <div id="todo-tasks" class="tasks-container space-y-3 min-h-[200px] max-h-[60vh] overflow-y-auto p-1">
                 </div>
         </div>
 
-        <div id="inprogress-column" class="kanban-column p-4 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 text-center text-gray-200 border-b border-gray-500 pb-2">In Progress</h2>
-            <div id="inprogress-tasks" class="space-y-3 min-h-[200px]">
+        <div id="inprogress-column" class="kanban-column p-4 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold mb-4 text-center text-gray-100 border-b pb-2 kanban-column-header flex items-center justify-center space-x-2">
+                <i data-lucide="loader-circle" class="w-6 h-6 text-amber-400 animate-spin [animation-duration:3s]"></i>
+                <span>In Progress</span>
+            </h2>
+            <div id="inprogress-tasks" class="tasks-container space-y-3 min-h-[200px] max-h-[60vh] overflow-y-auto p-1">
                  </div>
         </div>
 
-        <div id="done-column" class="kanban-column p-4 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4 text-center text-gray-200 border-b border-gray-500 pb-2">Done 🎉</h2>
-            <div id="done-tasks" class="space-y-3 min-h-[200px]">
+        <div id="done-column" class="kanban-column p-4 rounded-lg shadow-lg">
+            <div class="flex justify-between items-center mb-4 border-b pb-2 kanban-column-header">
+                <h2 class="text-xl font-semibold text-center text-gray-100 flex items-center space-x-2">
+                    <i data-lucide="check-circle-2" class="w-6 h-6 text-green-400"></i>
+                    <span>Done</span>
+                </h2>
+                <button id="clear-done-button" title="Clear all done tasks" class="text-gray-400 hover:text-red-400 transition-colors">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="done-tasks" class="tasks-container space-y-3 min-h-[200px] max-h-[60vh] overflow-y-auto p-1">
                  </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal-backdrop hidden">
+        <div class="modal-content w-full md:w-1/2 lg:w-1/3">
+            <h3 class="text-xl font-semibold mb-4 text-gray-100">Edit Task</h3>
+            <input type="text" id="edit-task-text-input" class="form-input w-full p-3 rounded-md mb-4">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                 <div>
+                    <label for="edit-task-priority" class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
+                    <select id="edit-task-priority" class="form-select w-full p-3 rounded-md">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="edit-task-due-date" class="block text-sm font-medium text-gray-300 mb-1">Due Date</label>
+                    <input type="date" id="edit-task-due-date" class="form-input w-full p-3 rounded-md">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-edit-button" class="bg-gray-600 hover:bg-gray-500 text-gray-200 font-semibold py-2 px-4 rounded-md transition">Cancel</button>
+                <button id="save-edit-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition">Save Changes</button>
+            </div>
         </div>
     </div>
 
@@ -109,114 +212,295 @@
     <script>
         // --- DOM Elements ---
         const newTaskInput = document.getElementById('new-task-input');
+        const newTaskPriorityInput = document.getElementById('new-task-priority');
+        const newTaskDueDateInput = document.getElementById('new-task-due-date');
         const addTaskButton = document.getElementById('add-task-button');
         const todoTasks = document.getElementById('todo-tasks');
         const inProgressTasks = document.getElementById('inprogress-tasks');
         const doneTasks = document.getElementById('done-tasks');
-        const columns = document.querySelectorAll('.kanban-column');
-        const taskContainers = document.querySelectorAll('.kanban-column > div'); // Get the actual task containers
+        const clearDoneButton = document.getElementById('clear-done-button');
+        const columns = document.querySelectorAll('.kanban-column'); 
+        const taskContainers = document.querySelectorAll('.tasks-container'); 
+
+        // Edit Modal Elements
+        const editModal = document.getElementById('edit-modal');
+        const editTaskTextInput = document.getElementById('edit-task-text-input');
+        const editTaskPriorityInput = document.getElementById('edit-task-priority');
+        const editTaskDueDateInput = document.getElementById('edit-task-due-date');
+        const saveEditButton = document.getElementById('save-edit-button');
+        const cancelEditButton = document.getElementById('cancel-edit-button');
+        let currentEditingTaskCard = null;
+
+
+        // --- LocalStorage Key ---
+        const LOCAL_STORAGE_KEY = 'medTrackerTasks_v2'; 
 
         // --- Task Management ---
-        let taskIdCounter = 1; // Reset counter for simplicity with initial tasks
+        let taskIdCounter = 1;
+
+        // Function to save all tasks to localStorage
+        function saveTasksToLocalStorage() {
+            const tasksToSave = [];
+            taskContainers.forEach(container => {
+                const columnId = container.id;
+                container.querySelectorAll('.task-card').forEach(taskCard => {
+                    const textSpan = taskCard.querySelector('.task-text');
+                    // const prioritySpan = taskCard.querySelector('.priority-badge'); // Not needed directly for saving, data attributes are used
+                    // const dueDateSpan = taskCard.querySelector('.due-date-text'); // Not needed directly for saving
+                    if (textSpan) {
+                        tasksToSave.push({
+                            id: taskCard.dataset.taskId,
+                            text: textSpan.textContent,
+                            priority: taskCard.dataset.priority || 'medium',
+                            dueDate: taskCard.dataset.dueDate || '',
+                            column: columnId
+                        });
+                    }
+                });
+            });
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasksToSave));
+        }
+
+        // Function to load tasks from localStorage
+        function loadTasksFromLocalStorage() {
+            const savedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedTasks) {
+                const tasks = JSON.parse(savedTasks);
+                let maxId = 0;
+                tasks.forEach(taskData => {
+                    const numericIdString = taskData.id ? taskData.id.split('-')[1] : null;
+                    if (numericIdString) {
+                        const numericId = parseInt(numericIdString, 10);
+                        const taskElement = createTaskElement(taskData.text, numericId, taskData.priority, taskData.dueDate);
+                        const targetColumn = document.getElementById(taskData.column);
+                        if (targetColumn) {
+                            targetColumn.appendChild(taskElement);
+                        }
+                        if (numericId > maxId) {
+                            maxId = numericId;
+                        }
+                    }
+                });
+                taskIdCounter = maxId + 1;
+                return true;
+            }
+            return false;
+        }
 
         // Function to create a new task element
-        function createTaskElement(taskText, taskId) {
+        function createTaskElement(taskText, taskId, priority = 'medium', dueDate = '') {
             const taskCard = document.createElement('div');
-            // Using Tailwind classes directly now for consistency
-            taskCard.className = 'task-card bg-gray-600 p-3 rounded-md shadow border border-zinc-600 text-gray-100'; // Apply dark mode classes
+            taskCard.className = 'task-card p-4 rounded-lg shadow-md flex flex-col space-y-2';
             taskCard.setAttribute('draggable', 'true');
             taskCard.setAttribute('data-task-id', `task-${taskId}`);
+            taskCard.setAttribute('data-priority', priority);
+            taskCard.setAttribute('data-due-date', dueDate);
 
-            // Create span for task text
             const taskTextSpan = document.createElement('span');
+            taskTextSpan.className = 'task-text font-medium text-gray-50';
             taskTextSpan.textContent = taskText;
-            taskCard.appendChild(taskTextSpan);
 
-            // Create delete button
+            const metaInfoDiv = document.createElement('div');
+            metaInfoDiv.className = 'flex flex-wrap items-center gap-x-3 gap-y-1 text-xs';
+
+            const priorityBadge = document.createElement('span');
+            priorityBadge.className = `priority-badge px-2 py-0.5 rounded-full font-semibold ${getPriorityClasses(priority)}`;
+            priorityBadge.textContent = priority.charAt(0).toUpperCase() + priority.slice(1);
+            metaInfoDiv.appendChild(priorityBadge);
+
+            if (dueDate) {
+                const dueDateSpan = document.createElement('span');
+                dueDateSpan.className = 'due-date-text text-gray-400 flex items-center space-x-1';
+                const dateIcon = document.createElement('i');
+                dateIcon.dataset.lucide = 'calendar-days'; // Prepare for Lucide
+                dateIcon.className = 'w-3 h-3';
+                dueDateSpan.appendChild(dateIcon);
+                const dateText = document.createElement('span');
+                dateText.textContent = formatDate(dueDate);
+                dueDateSpan.appendChild(dateText);
+                metaInfoDiv.appendChild(dueDateSpan);
+            }
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'flex items-center justify-end space-x-2 mt-auto pt-2';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-button p-1 rounded hover:bg-gray-600';
+            editBtn.title = "Edit task";
+            editBtn.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4"></i>'; // Prepare for Lucide
+            editBtn.onclick = () => openEditModal(taskCard);
+            actionsDiv.appendChild(editBtn);
+
             const deleteBtn = document.createElement('button');
-            deleteBtn.classList.add('delete-button'); // Style applied via CSS
-            deleteBtn.innerHTML = '&times;'; // Use HTML entity for 'X'
-            deleteBtn.setAttribute('aria-label', 'Delete task'); // Accessibility
+            deleteBtn.className = 'delete-button p-1 rounded hover:bg-gray-600';
+            deleteBtn.title = "Delete task";
+            deleteBtn.innerHTML = '<i data-lucide="trash" class="w-4 h-4"></i>'; // Prepare for Lucide
             deleteBtn.onclick = function() {
-                // Optional: Add confirmation dialog
-                // if (confirm(`Are you sure you want to delete task: "${taskText}"?`)) {
-                    taskCard.remove(); // Remove the task card element
-                // }
+                taskCard.remove();
+                saveTasksToLocalStorage();
             };
-            taskCard.appendChild(deleteBtn);
+            actionsDiv.appendChild(deleteBtn);
 
-
-            // Add drag event listeners to the new task
+            taskCard.appendChild(taskTextSpan);
+            taskCard.appendChild(metaInfoDiv);
+            taskCard.appendChild(actionsDiv);
+            
             addDragListeners(taskCard);
-
+            // REMOVED: lucide.createIcons(); - Will be called after element is in main DOM
             return taskCard;
+        }
+
+        function getPriorityClasses(priority) {
+            if (priority === 'high') return 'priority-high';
+            if (priority === 'medium') return 'priority-medium';
+            return 'priority-low';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString + 'T00:00:00'); 
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
 
         // Function to add a new task via input
         function addTaskFromInput() {
             const taskText = newTaskInput.value.trim();
+            const priority = newTaskPriorityInput.value;
+            const dueDate = newTaskDueDateInput.value;
+
             if (taskText === '') {
-                // Consider replacing alert with a styled modal integrated into the dark theme
                 alert("Please enter a task description.");
                 return;
             }
-
-            const newTask = createTaskElement(taskText, taskIdCounter++);
-            todoTasks.appendChild(newTask); // Add new tasks to the "To Do" column by default
-            newTaskInput.value = ''; // Clear the input field
+            const newTask = createTaskElement(taskText, taskIdCounter++, priority, dueDate);
+            todoTasks.appendChild(newTask); // Append to DOM first
+            
+            newTaskInput.value = '';
+            newTaskDueDateInput.value = ''; 
+            newTaskPriorityInput.value = 'medium'; 
+            saveTasksToLocalStorage();
+            lucide.createIcons(); // Then call Lucide to process new icons in the DOM
         }
 
-        // Event listener for the Add Task button
         addTaskButton.addEventListener('click', addTaskFromInput);
-
-        // Event listener for pressing Enter in the input field
         newTaskInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
-                addTaskFromInput();
+                if (document.activeElement === newTaskInput) {
+                    addTaskFromInput();
+                }
+            }
+        });
+
+        // --- Edit Task Modal Logic ---
+        function openEditModal(taskCard) {
+            currentEditingTaskCard = taskCard;
+            editTaskTextInput.value = taskCard.querySelector('.task-text').textContent;
+            editTaskPriorityInput.value = taskCard.dataset.priority || 'medium';
+            editTaskDueDateInput.value = taskCard.dataset.dueDate || '';
+            editModal.classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            currentEditingTaskCard = null;
+        }
+
+        saveEditButton.addEventListener('click', () => {
+            if (currentEditingTaskCard) {
+                const newText = editTaskTextInput.value.trim();
+                const newPriority = editTaskPriorityInput.value;
+                const newDueDate = editTaskDueDateInput.value;
+
+                if (newText === '') {
+                    alert("Task text cannot be empty.");
+                    return;
+                }
+
+                currentEditingTaskCard.querySelector('.task-text').textContent = newText;
+                
+                currentEditingTaskCard.dataset.priority = newPriority;
+                const priorityBadge = currentEditingTaskCard.querySelector('.priority-badge');
+                priorityBadge.className = `priority-badge px-2 py-0.5 rounded-full font-semibold ${getPriorityClasses(newPriority)}`;
+                priorityBadge.textContent = newPriority.charAt(0).toUpperCase() + newPriority.slice(1);
+
+                currentEditingTaskCard.dataset.dueDate = newDueDate;
+                let dueDateSpan = currentEditingTaskCard.querySelector('.due-date-text');
+                const metaInfoDiv = currentEditingTaskCard.querySelector('.flex.flex-wrap.items-center.gap-x-3'); 
+
+                if (newDueDate) {
+                    if (!dueDateSpan) { 
+                        dueDateSpan = document.createElement('span');
+                        dueDateSpan.className = 'due-date-text text-gray-400 flex items-center space-x-1';
+                        const dateIcon = document.createElement('i');
+                        dateIcon.dataset.lucide = 'calendar-days';
+                        dateIcon.className = 'w-3 h-3';
+                        dueDateSpan.appendChild(dateIcon);
+                        const dateText = document.createElement('span');
+                        dueDateSpan.appendChild(dateText);
+                        // Make sure to append to the correct parent if it's a new element
+                        if(metaInfoDiv.children.length > 0 && metaInfoDiv.querySelector('.priority-badge')) {
+                             metaInfoDiv.insertBefore(dueDateSpan, metaInfoDiv.querySelector('.priority-badge').nextSibling); // Insert after priority
+                        } else {
+                            metaInfoDiv.appendChild(dueDateSpan); // Or just append if structure is simpler
+                        }
+                    }
+                    dueDateSpan.querySelector('span:last-child').textContent = formatDate(newDueDate);
+                } else if (dueDateSpan) { 
+                    dueDateSpan.remove();
+                }
+                
+                lucide.createIcons(); // Refresh icons
+                saveTasksToLocalStorage();
+                closeEditModal();
+            }
+        });
+        cancelEditButton.addEventListener('click', closeEditModal);
+
+
+        // --- Clear Done Tasks ---
+        clearDoneButton.addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear all tasks in the 'Done' column?")) {
+                doneTasks.innerHTML = ''; 
+                saveTasksToLocalStorage();
             }
         });
 
         // --- Drag and Drop Functionality ---
-        let draggedItem = null; // Variable to store the element being dragged
-        let sourceColumnId = null; // Keep track of the source column
+        let draggedItem = null;
+        let sourceColumnTasksId = null;
 
-        // Function to add drag listeners to a task card
         function addDragListeners(taskCard) {
             taskCard.addEventListener('dragstart', (e) => {
-                 // Prevent dragging if the delete button was the drag initiator
-                 if (e.target.classList.contains('delete-button')) {
+                 if (e.target.closest('.edit-button, .delete-button')) { 
                     e.preventDefault();
                     return;
                  }
                 draggedItem = taskCard;
-                sourceColumnId = taskCard.closest('.kanban-column > div').id; // Get the ID of the parent task container (e.g., 'todo-tasks')
-                setTimeout(() => taskCard.classList.add('dragging'), 0); // Add dragging style with a slight delay
+                sourceColumnTasksId = taskCard.parentElement.id;
+                setTimeout(() => taskCard.classList.add('dragging'), 0);
             });
 
             taskCard.addEventListener('dragend', () => {
-                // Ensure draggedItem is not null before trying to remove class
                 if(draggedItem) {
-                    setTimeout(() => { // Use timeout to ensure styles are applied after drop logic
-                        draggedItem.classList.remove('dragging');
+                    setTimeout(() => {
+                        if (draggedItem) { // Check if still exists (might have been removed)
+                           draggedItem.classList.remove('dragging');
+                        }
                         draggedItem = null;
-                        sourceColumnId = null; // Reset source column
+                        sourceColumnTasksId = null;
                     }, 0);
                 }
-                 // Clean up any lingering drag-over styles on columns
-                 columns.forEach(col => col.classList.remove('drag-over'));
+                 columns.forEach(col => col.classList.remove('drag-over')); 
+                 taskContainers.forEach(cont => cont.parentElement.classList.remove('drag-over')); 
             });
         }
 
-        // Add dragover and drop listeners to task containers within columns
-        taskContainers.forEach(container => {
+        taskContainers.forEach(container => { 
             container.addEventListener('dragover', (e) => {
-                e.preventDefault(); // Necessary to allow dropping
-                const targetColumnElement = container.parentElement; // The actual column element
-                targetColumnElement.classList.add('drag-over'); // Highlight the column
-
+                e.preventDefault();
+                const targetColumnElement = container.parentElement; 
+                targetColumnElement.classList.add('drag-over');
                 const afterElement = getDragAfterElement(container, e.clientY);
-
-                // Only append if we have a valid dragged item
                 if (draggedItem) {
                     if (afterElement == null) {
                          container.appendChild(draggedItem);
@@ -228,40 +512,32 @@
 
              container.addEventListener('dragleave', (e) => {
                  const targetColumnElement = container.parentElement;
-                 // Check if the related target (where the mouse is going) is outside the current column
-                 // This prevents flickering when moving over child elements (the tasks)
                  if (!targetColumnElement.contains(e.relatedTarget)) {
-                    targetColumnElement.classList.remove('drag-over'); // Remove highlight only when leaving the column entirely
+                    targetColumnElement.classList.remove('drag-over');
                  }
              });
 
             container.addEventListener('drop', (e) => {
-                e.preventDefault(); // Prevent default drop behavior
+                e.preventDefault();
                 const targetColumnElement = container.parentElement;
-                targetColumnElement.classList.remove('drag-over'); // Remove highlight
+                targetColumnElement.classList.remove('drag-over');
 
                 if (draggedItem) {
-                    const targetTasksContainerId = container.id; // e.g., 'done-tasks'
-
-                    // Check if the task was dropped into the "Done" column AND wasn't already there
-                    if (targetTasksContainerId === 'done-tasks' && sourceColumnId !== 'done-tasks') {
+                    const targetTasksContainerId = container.id;
+                    if (targetTasksContainerId === 'done-tasks' && sourceColumnTasksId !== 'done-tasks') {
                         triggerConfetti();
                     }
-                    // The actual move happens during 'dragover' for smoother visual feedback
+                    saveTasksToLocalStorage();
                 }
-                 // Reset source column ID after drop is complete
-                 sourceColumnId = null;
+                sourceColumnTasksId = null;
             });
         });
 
-        // Helper function to determine where to insert the dragged item
         function getDragAfterElement(container, y) {
             const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
-
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
-                // Find the element directly below the cursor
                 if (offset < 0 && offset > closest.offset) {
                     return { offset: offset, element: child };
                 } else {
@@ -270,9 +546,7 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-
         // --- Confetti Animation ---
-        // (Confetti code remains the same - no visual changes needed for dark mode)
         const confettiCanvas = document.getElementById('confetti-canvas');
         const ctx = confettiCanvas.getContext('2d');
         let particles = [];
@@ -282,16 +556,17 @@
              constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.size = Math.random() * 7 + 3;
-                this.speedX = Math.random() * 6 - 3;
-                this.speedY = Math.random() * -15 - 5;
-                // Keep bright colors for confetti contrast against dark background
-                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`; // Slightly brighter maybe
+                this.size = Math.random() * 8 + 4; 
+                this.speedX = Math.random() * 8 - 4;
+                this.speedY = Math.random() * -20 - 8; 
+                this.color = `hsl(${Math.random() * 360}, 100%, 70%)`; 
                 this.opacity = 1;
-                this.gravity = 0.3;
-                this.drag = 0.98;
-                this.spin = Math.random() * 0.2 - 0.1;
+                this.gravity = 0.4;
+                this.drag = 0.97;
+                this.spin = Math.random() * 0.3 - 0.15;
                 this.angle = 0;
+                this.shape = Math.random() > 0.5 ? 'rect' : 'circle'; 
+                this.rotation = Math.random() * Math.PI * 2;
             }
             update() {
                 this.speedY += this.gravity;
@@ -299,7 +574,7 @@
                 this.speedY *= this.drag;
                 this.x += this.speedX;
                 this.y += this.speedY;
-                this.opacity -= 0.01;
+                this.opacity -= 0.008; 
                 this.angle += this.spin;
             }
             draw() {
@@ -308,16 +583,22 @@
                 ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
                 ctx.rotate(this.angle);
                 ctx.fillStyle = this.color;
-                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                if (this.shape === 'rect') {
+                    ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.6); 
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
                 ctx.restore();
             }
         }
 
         function createParticles() {
             particles = [];
-            const particleCount = 150;
+            const particleCount = 200; 
             const centerX = confettiCanvas.width / 2;
-            const centerY = confettiCanvas.height * 0.2;
+            const centerY = confettiCanvas.height * 0.1; 
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new Particle(centerX, centerY));
             }
@@ -330,7 +611,7 @@
             particles.forEach((particle, index) => {
                 particle.update();
                 particle.draw();
-                if (particle.opacity <= 0 || particle.y > confettiCanvas.height) {
+                if (particle.opacity <= 0 || particle.y > confettiCanvas.height + 20) { 
                     particles.splice(index, 1);
                 }
             });
@@ -354,21 +635,29 @@
 
         // --- Initial Setup ---
         function initializeBoard() {
-            // Add some initial example tasks
-            const initialTasks = [
-                { text: "Schedule check-up", column: todoTasks },
-                { text: "Refill prescription", column: inProgressTasks },
-                { text: "Take morning pills", column: doneTasks }
-            ];
-
-            initialTasks.forEach(task => {
-                const taskElement = createTaskElement(task.text, taskIdCounter++);
-                task.column.appendChild(taskElement);
-            });
+            if (!loadTasksFromLocalStorage()) {
+                const initialTasks = [
+                    { text: "Take Morning Vitamins", priority: "high", dueDate: new Date().toISOString().split('T')[0], columnId: "todo-tasks" },
+                    { text: "Evening Statin Pill", priority: "medium", dueDate: "", columnId: "todo-tasks" },
+                    { text: "Schedule Doctor Appointment", priority: "low", dueDate: "", columnId: "inprogress-tasks" },
+                    { text: "Refill Metformin Prescription", priority: "high", dueDate: "", columnId: "done-tasks" }
+                ];
+                initialTasks.forEach(task => {
+                    const taskElement = createTaskElement(task.text, taskIdCounter++, task.priority, task.dueDate);
+                    document.getElementById(task.columnId).appendChild(taskElement);
+                });
+                saveTasksToLocalStorage();
+            }
+            // Call Lucide here, after all initial tasks are in the DOM
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons(); 
+            } else {
+                console.error("Lucide library not loaded at initializeBoard");
+            }
         }
 
-        // Initialize the board when the script runs
-        initializeBoard();
+        // Ensure the main script logic runs after DOM is fully parsed.
+        document.addEventListener('DOMContentLoaded', initializeBoard);
 
     </script>
 
