@@ -1,31 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en" class="dark"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanban Task Tracker</title>
+    <title>MedTracker - Kanban Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Custom styles */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Light gray background */
+            /* Dark mode background */
+            background-color: #1f2937; /* gray-800 */
         }
         .kanban-column {
             min-height: 300px; /* Ensure columns have a minimum height */
             transition: background-color 0.2s ease-in-out; /* Smooth transition for dragover */
+            /* Dark mode column background */
+            background-color: #374151; /* gray-700 */
         }
         .task-card {
             cursor: grab; /* Indicate draggable item */
             transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth transition for dragging */
             position: relative; /* Needed for absolute positioning of the delete button */
             padding-right: 2.5rem; /* Make space for the delete button */
+             /* Dark mode task card background and text */
+            background-color: #4b5563; /* gray-600 */
+            color: #f3f4f6; /* gray-100 */
+            border-color: #52525b; /* zinc-600 */
         }
         .task-card:active {
             cursor: grabbing; /* Indicate grabbing state */
             transform: scale(1.03); /* Slightly enlarge card when grabbed */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Add shadow when grabbed */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); /* Darker shadow */
         }
         .delete-button {
             position: absolute;
@@ -33,7 +39,7 @@
             right: 0.5rem; /* Adjust as needed */
             background: none;
             border: none;
-            color: #9ca3af; /* Gray color */
+            color: #9ca3af; /* gray-400 */
             font-size: 1.2rem; /* Slightly larger 'X' */
             font-weight: bold;
             cursor: pointer;
@@ -42,13 +48,14 @@
             transition: color 0.2s ease;
         }
         .delete-button:hover {
-            color: #ef4444; /* Red color on hover */
+            color: #f87171; /* red-400 */
         }
         .dragging {
-            opacity: 0.5; /* Make dragged item semi-transparent */
+            opacity: 0.6; /* Adjust opacity for dark mode */
         }
         .drag-over {
-            background-color: #e5e7eb; /* Light gray highlight on drag over */
+             /* Dark mode highlight on drag over */
+            background-color: #4b5563; /* gray-600 */
         }
         /* Confetti Canvas */
         #confetti-canvas {
@@ -65,33 +72,33 @@
 </head>
 <body class="p-4 md:p-8">
 
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Kanban Task Tracker</h1>
+    <h1 class="text-3xl font-bold text-center text-gray-100 mb-8">MedTracker</h1>
 
-    <div class="mb-8 max-w-md mx-auto bg-white p-4 rounded-lg shadow">
-        <h2 class="text-lg font-semibold mb-2 text-gray-700">Add New Task</h2>
+    <div class="mb-8 max-w-md mx-auto bg-gray-700 p-4 rounded-lg shadow-lg">
+        <h2 class="text-lg font-semibold mb-2 text-gray-200">Add New Task</h2>
         <div class="flex space-x-2">
-            <input type="text" id="new-task-input" placeholder="Enter task description..." class="flex-grow border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button id="add-task-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out">
+            <input type="text" id="new-task-input" placeholder="Enter task description..." class="flex-grow border border-gray-500 bg-gray-600 text-gray-100 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400">
+            <button id="add-task-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out">
                 Add Task
             </button>
         </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        <div id="todo-column" class="kanban-column bg-gray-100 p-4 rounded-lg shadow">
-            <h2 class="text-xl font-semibold mb-4 text-center text-gray-700 border-b pb-2">To Do</h2>
+        <div id="todo-column" class="kanban-column p-4 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-center text-gray-200 border-b border-gray-500 pb-2">To Do</h2>
             <div id="todo-tasks" class="space-y-3 min-h-[200px]">
                 </div>
         </div>
 
-        <div id="inprogress-column" class="kanban-column bg-gray-100 p-4 rounded-lg shadow">
-            <h2 class="text-xl font-semibold mb-4 text-center text-gray-700 border-b pb-2">In Progress</h2>
+        <div id="inprogress-column" class="kanban-column p-4 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-center text-gray-200 border-b border-gray-500 pb-2">In Progress</h2>
             <div id="inprogress-tasks" class="space-y-3 min-h-[200px]">
                  </div>
         </div>
 
-        <div id="done-column" class="kanban-column bg-gray-100 p-4 rounded-lg shadow">
-            <h2 class="text-xl font-semibold mb-4 text-center text-gray-700 border-b pb-2">Done 🎉</h2>
+        <div id="done-column" class="kanban-column p-4 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-center text-gray-200 border-b border-gray-500 pb-2">Done 🎉</h2>
             <div id="done-tasks" class="space-y-3 min-h-[200px]">
                  </div>
         </div>
@@ -115,7 +122,8 @@
         // Function to create a new task element
         function createTaskElement(taskText, taskId) {
             const taskCard = document.createElement('div');
-            taskCard.classList.add('task-card', 'bg-white', 'p-3', 'rounded-md', 'shadow', 'border', 'border-gray-200');
+            // Using Tailwind classes directly now for consistency
+            taskCard.className = 'task-card bg-gray-600 p-3 rounded-md shadow border border-zinc-600 text-gray-100'; // Apply dark mode classes
             taskCard.setAttribute('draggable', 'true');
             taskCard.setAttribute('data-task-id', `task-${taskId}`);
 
@@ -126,7 +134,7 @@
 
             // Create delete button
             const deleteBtn = document.createElement('button');
-            deleteBtn.classList.add('delete-button');
+            deleteBtn.classList.add('delete-button'); // Style applied via CSS
             deleteBtn.innerHTML = '&times;'; // Use HTML entity for 'X'
             deleteBtn.setAttribute('aria-label', 'Delete task'); // Accessibility
             deleteBtn.onclick = function() {
@@ -148,7 +156,7 @@
         function addTaskFromInput() {
             const taskText = newTaskInput.value.trim();
             if (taskText === '') {
-                // Using a simple alert, replace with a nicer modal if desired
+                // Consider replacing alert with a styled modal integrated into the dark theme
                 alert("Please enter a task description.");
                 return;
             }
@@ -170,6 +178,7 @@
 
         // --- Drag and Drop Functionality ---
         let draggedItem = null; // Variable to store the element being dragged
+        let sourceColumnId = null; // Keep track of the source column
 
         // Function to add drag listeners to a task card
         function addDragListeners(taskCard) {
@@ -180,6 +189,7 @@
                     return;
                  }
                 draggedItem = taskCard;
+                sourceColumnId = taskCard.closest('.kanban-column > div').id; // Get the ID of the parent task container (e.g., 'todo-tasks')
                 setTimeout(() => taskCard.classList.add('dragging'), 0); // Add dragging style with a slight delay
             });
 
@@ -189,8 +199,11 @@
                     setTimeout(() => { // Use timeout to ensure styles are applied after drop logic
                         draggedItem.classList.remove('dragging');
                         draggedItem = null;
+                        sourceColumnId = null; // Reset source column
                     }, 0);
                 }
+                 // Clean up any lingering drag-over styles on columns
+                 columns.forEach(col => col.classList.remove('drag-over'));
             });
         }
 
@@ -198,8 +211,8 @@
         taskContainers.forEach(container => {
             container.addEventListener('dragover', (e) => {
                 e.preventDefault(); // Necessary to allow dropping
-                const targetColumn = container.parentElement;
-                targetColumn.classList.add('drag-over'); // Highlight the column
+                const targetColumnElement = container.parentElement; // The actual column element
+                targetColumnElement.classList.add('drag-over'); // Highlight the column
 
                 const afterElement = getDragAfterElement(container, e.clientY);
 
@@ -214,29 +227,30 @@
             });
 
              container.addEventListener('dragleave', (e) => {
+                 const targetColumnElement = container.parentElement;
                  // Check if the related target (where the mouse is going) is outside the current column
-                 const targetColumn = container.parentElement;
-                 if (!targetColumn.contains(e.relatedTarget)) {
-                    targetColumn.classList.remove('drag-over'); // Remove highlight only when leaving the column entirely
+                 // This prevents flickering when moving over child elements (the tasks)
+                 if (!targetColumnElement.contains(e.relatedTarget)) {
+                    targetColumnElement.classList.remove('drag-over'); // Remove highlight only when leaving the column entirely
                  }
              });
 
             container.addEventListener('drop', (e) => {
                 e.preventDefault(); // Prevent default drop behavior
-                const targetColumn = container.parentElement;
-                targetColumn.classList.remove('drag-over'); // Remove highlight
+                const targetColumnElement = container.parentElement;
+                targetColumnElement.classList.remove('drag-over'); // Remove highlight
 
                 if (draggedItem) {
-                    // Check if the task was dropped into the "Done" column
-                    if (targetColumn.id === 'done-column') {
-                        // Trigger confetti only if the item wasn't already in 'done-tasks' before drag start
-                        // A simple way is to check the parent *before* the drop logic moves it,
-                        // but since the move happens in dragover, this check needs refinement or state tracking.
-                        // For now, triggering on any drop to 'done' remains.
+                    const targetTasksContainerId = container.id; // e.g., 'done-tasks'
+
+                    // Check if the task was dropped into the "Done" column AND wasn't already there
+                    if (targetTasksContainerId === 'done-tasks' && sourceColumnId !== 'done-tasks') {
                         triggerConfetti();
                     }
                     // The actual move happens during 'dragover' for smoother visual feedback
                 }
+                 // Reset source column ID after drop is complete
+                 sourceColumnId = null;
             });
         });
 
@@ -258,20 +272,21 @@
 
 
         // --- Confetti Animation ---
+        // (Confetti code remains the same - no visual changes needed for dark mode)
         const confettiCanvas = document.getElementById('confetti-canvas');
         const ctx = confettiCanvas.getContext('2d');
         let particles = [];
-        let animationFrameId = null; // To store the requestAnimationFrame ID
+        let animationFrameId = null;
 
-        // Particle class (remains the same)
         class Particle {
-            constructor(x, y) {
+             constructor(x, y) {
                 this.x = x;
                 this.y = y;
                 this.size = Math.random() * 7 + 3;
                 this.speedX = Math.random() * 6 - 3;
                 this.speedY = Math.random() * -15 - 5;
-                this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                // Keep bright colors for confetti contrast against dark background
+                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`; // Slightly brighter maybe
                 this.opacity = 1;
                 this.gravity = 0.3;
                 this.drag = 0.98;
@@ -298,7 +313,6 @@
             }
         }
 
-        // Function to create particles (remains the same)
         function createParticles() {
             particles = [];
             const particleCount = 150;
@@ -309,7 +323,6 @@
             }
         }
 
-        // Animation loop (remains the same)
         function animateConfetti() {
             confettiCanvas.width = window.innerWidth;
             confettiCanvas.height = window.innerHeight;
@@ -329,7 +342,6 @@
             }
         }
 
-        // Function to trigger the confetti (remains the same)
         function triggerConfetti() {
             confettiCanvas.style.display = 'block';
             confettiCanvas.width = window.innerWidth;
@@ -344,18 +356,15 @@
         function initializeBoard() {
             // Add some initial example tasks
             const initialTasks = [
-                { text: "Task 1: Design the UI", column: todoTasks },
-                { text: "Task 2: Develop backend API", column: inProgressTasks },
-                { text: "Task 3: Write documentation", column: doneTasks }
+                { text: "Schedule check-up", column: todoTasks },
+                { text: "Refill prescription", column: inProgressTasks },
+                { text: "Take morning pills", column: doneTasks }
             ];
 
             initialTasks.forEach(task => {
                 const taskElement = createTaskElement(task.text, taskIdCounter++);
                 task.column.appendChild(taskElement);
             });
-
-            // Add drag listeners to initially created tasks (redundant if createTaskElement does it, but safe)
-            // document.querySelectorAll('.task-card').forEach(addDragListeners);
         }
 
         // Initialize the board when the script runs
