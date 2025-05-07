@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedTracker</title>
+    <title>MedTracker - Advanced Kanban</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide-static@latest/dist/lucide.min.js" defer></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -22,33 +22,35 @@
             min-height: 350px;
             transition: background-color 0.3s ease;
         }
+        /* Slimmer Task Cards */
         .task-card {
             background-color: #374151; 
             border: 1px solid #4b5563; 
             color: #f3f4f6; 
             transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
             cursor: grab;
+            padding: 0.75rem; /* Reduced padding */
+            margin-bottom: 0.5rem; /* Reduced margin */
         }
         .task-card:hover {
             background-color: #4b5563; 
         }
         .task-card:active {
             cursor: grabbing;
-            transform: scale(1.03);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transform: scale(1.02); /* Slightly less pronounced scale */
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
         }
         .dragging {
-            opacity: 0.5;
-            transform: rotate(3deg);
+            opacity: 0.6;
+            transform: rotate(2deg);
         }
         .drag-over {
-            background-color: #374151 !important; /* Ensure column highlight is visible */
+            background-color: #374151 !important; 
             border-style: dashed !important;
         }
-        .delete-button, .edit-button {
+        .delete-button, .edit-button { /* For buttons on card, if any are kept */
             color: #9ca3af; 
             transition: color 0.2s ease;
-            /* Removed red border from debugging */
         }
         .delete-button:hover {
             color: #f87171; 
@@ -62,6 +64,11 @@
         .priority-low { background-color: #22c55e; color: #ffffff; } 
         .priority-medium { background-color: #f59e0b; color: #ffffff; } 
         .priority-high { background-color: #ef4444; color: #ffffff; } 
+        .tag-badge {
+            background-color: #52525b; /* zinc-600 */
+            color: #e5e7eb; /* gray-200 */
+            font-size: 0.7rem; /* Smaller font for tags */
+        }
 
         #confetti-canvas {
             position: fixed;
@@ -87,72 +94,143 @@
         .tasks-container::-webkit-scrollbar-thumb:hover {
             background: #52525b; 
         }
-        .form-input, .form-select {
+        .form-input, .form-select, .form-textarea {
             background-color: #374151; 
             border-color: #4b5563; 
             color: #f3f4f6; 
         }
-        .form-input:focus, .form-select:focus {
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
             border-color: #60a5fa; 
             ring-color: #60a5fa; 
         }
+        /* Tutorial Modal & General Modal Styles */
         .modal-backdrop {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            background-color: rgba(0,0,0,0.8); /* Darker backdrop */
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 10000; 
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-backdrop.visible {
+            opacity: 1;
+            visibility: visible;
         }
         .modal-content {
             background-color: #1f2937; 
             padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            min-width: 300px;
-            max-width: 500px;
+            border-radius: 0.75rem; /* More rounded */
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+            min-width: 320px;
+            max-width: 550px;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal-backdrop.visible .modal-content {
+            transform: scale(1);
+        }
+        .modal-content h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f3f4f6;
+            margin-bottom: 1.5rem;
+        }
+        .modal-content p {
+            color: #d1d5db;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        .modal-content ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            color: #d1d5db;
+            margin-bottom: 1.5rem;
+        }
+        .modal-content li {
+            margin-bottom: 0.5rem;
         }
 
-        /* Styles for the new Trash Area */
+        /* Trash Area - Moved to bottom left */
         #trash-area {
             position: fixed;
-            bottom: -150px; /* Initially hidden off-screen */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            height: 100px;
-            background-color: #4b5563; /* gray-600 */
-            border: 2px dashed #ef4444; /* red-500 */
+            bottom: -150px; 
+            left: 20px; /* Changed from 50% and transform */
+            width: 150px; /* Slightly smaller */
+            height: 90px;
+            background-color: #4b5563; 
+            border: 2px dashed #ef4444; 
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10001; /* Above modal backdrop but below active dragging item if needed */
-            transition: bottom 0.3s ease-in-out, background-color 0.3s ease;
-            color: #ef4444; /* red-500 for icon and text */
-            opacity: 0; /* Initially transparent */
-            pointer-events: none; /* Initially not interactive */
+            z-index: 10001; 
+            transition: bottom 0.3s ease-in-out, background-color 0.3s ease, opacity 0.3s ease-in-out;
+            color: #ef4444; 
+            opacity: 0; 
+            pointer-events: none; 
         }
         #trash-area.visible {
-            bottom: 0; /* Slide in from bottom */
+            bottom: 0; 
             opacity: 1;
-            pointer-events: auto; /* Make interactive when visible */
+            pointer-events: auto; 
         }
         #trash-area.trash-over {
-            background-color: #ef4444; /* red-500 background when dragging over */
-            color: #ffffff; /* White icon/text when dragging over */
+            background-color: #ef4444; 
+            color: #ffffff; 
             border-style: solid;
         }
         #trash-area svg {
-            width: 40px;
-            height: 40px;
-            margin-bottom: 5px;
+            width: 30px; /* Smaller icon */
+            height: 30px;
+            margin-bottom: 3px;
+        }
+        #trash-area span {
+            font-size: 0.8rem; /* Smaller text */
+        }
+
+        /* Custom Context Menu */
+        #custom-context-menu {
+            position: absolute;
+            z-index: 10002; /* Above trash area */
+            background-color: #2d3748; /* gray-800 slightly lighter */
+            border: 1px solid #4a5568; /* gray-700 */
+            border-radius: 0.375rem; /* rounded-md */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            padding: 0.5rem 0; /* py-2 */
+            min-width: 160px; /* Adjust as needed */
+            display: none; /* Hidden by default */
+        }
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem; /* px-4 py-2 */
+            font-size: 0.875rem; /* text-sm */
+            color: #e2e8f0; /* gray-200 */
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .context-menu-item:hover {
+            background-color: #4a5568; /* gray-700 */
+            color: #ffffff;
+        }
+        .context-menu-item i { /* Lucide icons in context menu */
+            margin-right: 0.75rem; /* mr-3 */
+            width: 1rem; /* w-4 */
+            height: 1rem; /* h-4 */
+        }
+        .context-menu-divider {
+            height: 1px;
+            background-color: #4a5568; /* gray-700 */
+            margin: 0.5rem 0; /* my-2 */
         }
 
     </style>
@@ -163,12 +241,12 @@
         <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 mb-2">
             MedTracker
         </h1>
-        <p class="text-lg text-gray-400">Your Personal Task Dashboard</p>
+        <p class="text-lg text-gray-400">Your Personal Medication & Task Dashboard</p>
     </header>
 
     <div class="mb-10 max-w-2xl mx-auto bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700">
         <h2 class="text-2xl font-bold mb-6 text-gray-100">Add New Medication / Task</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <input type="text" id="new-task-input" placeholder="Task or Medication Name..." class="form-input col-span-1 md:col-span-2 p-3 rounded-md focus:outline-none focus:ring-2">
             <div>
                 <label for="new-task-priority" class="block text-sm font-medium text-gray-300 mb-1">Priority</label>
@@ -183,7 +261,11 @@
                 <input type="date" id="new-task-due-date" class="form-input w-full p-3 rounded-md focus:outline-none focus:ring-2">
             </div>
         </div>
-        <button id="add-task-button" class="mt-6 w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center space-x-2">
+        <div class="mb-4">
+             <label for="new-task-tags" class="block text-sm font-medium text-gray-300 mb-1">Tags (comma-separated)</label>
+             <input type="text" id="new-task-tags" placeholder="e.g., morning, prescription, reminder" class="form-input w-full p-3 rounded-md focus:outline-none focus:ring-2">
+        </div>
+        <button id="add-task-button" class="mt-2 w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-md transition duration-150 ease-in-out shadow-md hover:shadow-lg flex items-center justify-center space-x-2">
             <i data-lucide="plus-circle" class="w-5 h-5"></i>
             <span>Add Task</span>
         </button>
@@ -195,14 +277,14 @@
                 <i data-lucide="list-todo" class="w-6 h-6 text-sky-400"></i>
                 <span>To Do</span>
             </h2>
-            <div id="todo-tasks" class="tasks-container space-y-3 min-h-[200px] max-h-[60vh] overflow-y-auto p-1"></div>
+            <div id="todo-tasks" class="tasks-container space-y-2 min-h-[200px] max-h-[60vh] overflow-y-auto p-1"></div>
         </div>
         <div id="inprogress-column" class="kanban-column p-4 rounded-lg shadow-lg">
             <h2 class="text-xl font-semibold mb-4 text-center text-gray-100 border-b pb-2 kanban-column-header flex items-center justify-center space-x-2">
                 <i data-lucide="loader-circle" class="w-6 h-6 text-amber-400 animate-spin [animation-duration:3s]"></i>
                 <span>In Progress</span>
             </h2>
-            <div id="inprogress-tasks" class="tasks-container space-y-3 min-h-[200px] max-h-[60vh] overflow-y-auto p-1"></div>
+            <div id="inprogress-tasks" class="tasks-container space-y-2 min-h-[200px] max-h-[60vh] overflow-y-auto p-1"></div>
         </div>
         <div id="done-column" class="kanban-column p-4 rounded-lg shadow-lg">
             <div class="flex justify-between items-center mb-4 border-b pb-2 kanban-column-header">
@@ -214,13 +296,12 @@
                     <i data-lucide="trash-2" class="w-5 h-5"></i>
                 </button>
             </div>
-            <div id="done-tasks" class="tasks-container space-y-3 min-h-[200px] max-h-[60vh] overflow-y-auto p-1"></div>
+            <div id="done-tasks" class="tasks-container space-y-2 min-h-[200px] max-h-[60vh] overflow-y-auto p-1"></div>
         </div>
     </div>
 
-    <div id="edit-modal" class="modal-backdrop hidden">
-        <div class="modal-content w-full md:w-1/2 lg:w-1/3">
-            <h3 class="text-xl font-semibold mb-4 text-gray-100">Edit Task</h3>
+    <div id="edit-modal" class="modal-backdrop"> <div class="modal-content">
+            <h3>Edit Task</h3>
             <input type="text" id="edit-task-text-input" class="form-input w-full p-3 rounded-md mb-4">
             <div class="grid grid-cols-2 gap-4 mb-4">
                  <div>
@@ -236,12 +317,43 @@
                     <input type="date" id="edit-task-due-date" class="form-input w-full p-3 rounded-md">
                 </div>
             </div>
+             <div class="mb-4">
+                 <label for="edit-task-tags" class="block text-sm font-medium text-gray-300 mb-1">Tags (comma-separated)</label>
+                 <input type="text" id="edit-task-tags" class="form-input w-full p-3 rounded-md">
+            </div>
             <div class="flex justify-end space-x-3">
                 <button id="cancel-edit-button" class="bg-gray-600 hover:bg-gray-500 text-gray-200 font-semibold py-2 px-4 rounded-md transition">Cancel</button>
                 <button id="save-edit-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition">Save Changes</button>
             </div>
         </div>
     </div>
+
+    <div id="tutorial-modal" class="modal-backdrop"> <div class="modal-content">
+            <h3>Welcome to MedTracker!</h3>
+            <p>Here's a quick guide to get you started:</p>
+            <ul>
+                <li><strong>Add Tasks:</strong> Use the form at the top to add new medications or tasks. You can set priority, due dates, and tags.</li>
+                <li><strong>Manage Columns:</strong> Drag and drop tasks between "To Do", "In Progress", and "Done" columns.</li>
+                <li><strong>Task Actions:</strong> Right-click on a task card for options like editing or deleting it.</li>
+                <li><strong>Drag to Delete:</strong> You can also drag a task to the trash can area at the bottom-left to delete it.</li>
+                <li><strong>Confetti!:</strong> Completing a task by moving it to "Done" triggers a fun confetti celebration!</li>
+            </ul>
+            <p>Your tasks are automatically saved in your browser.</p>
+            <div class="flex justify-end">
+                <button id="close-tutorial-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-context-menu">
+        <div class="context-menu-item" id="context-edit">
+            <i data-lucide="edit-3"></i> Edit Task
+        </div>
+        <div class="context-menu-item" id="context-delete">
+            <i data-lucide="trash-2"></i> Delete Task
+        </div>
+        </div>
+
 
     <div id="trash-area">
         <i data-lucide="trash-2"></i>
@@ -255,6 +367,7 @@
         const newTaskInput = document.getElementById('new-task-input');
         const newTaskPriorityInput = document.getElementById('new-task-priority');
         const newTaskDueDateInput = document.getElementById('new-task-due-date');
+        const newTaskTagsInput = document.getElementById('new-task-tags'); // New
         const addTaskButton = document.getElementById('add-task-button');
         const todoTasks = document.getElementById('todo-tasks');
         const inProgressTasks = document.getElementById('inprogress-tasks');
@@ -262,22 +375,45 @@
         const clearDoneButton = document.getElementById('clear-done-button');
         const columns = document.querySelectorAll('.kanban-column'); 
         const taskContainers = document.querySelectorAll('.tasks-container'); 
-        const trashArea = document.getElementById('trash-area'); // New trash area element
+        const trashArea = document.getElementById('trash-area'); 
 
         // Edit Modal Elements
         const editModal = document.getElementById('edit-modal');
         const editTaskTextInput = document.getElementById('edit-task-text-input');
         const editTaskPriorityInput = document.getElementById('edit-task-priority');
         const editTaskDueDateInput = document.getElementById('edit-task-due-date');
+        const editTaskTagsInput = document.getElementById('edit-task-tags'); // New
         const saveEditButton = document.getElementById('save-edit-button');
         const cancelEditButton = document.getElementById('cancel-edit-button');
         let currentEditingTaskCard = null;
 
-        // --- LocalStorage Key ---
-        const LOCAL_STORAGE_KEY = 'medTrackerTasks_v3'; // Increment version for new feature
+        // Tutorial Modal Elements
+        const tutorialModal = document.getElementById('tutorial-modal');
+        const closeTutorialButton = document.getElementById('close-tutorial-button');
+
+        // Custom Context Menu Elements
+        const customContextMenu = document.getElementById('custom-context-menu');
+        const contextEditButton = document.getElementById('context-edit');
+        const contextDeleteButton = document.getElementById('context-delete');
+        let currentContextMenuTaskCard = null;
+
+
+        // --- LocalStorage Keys ---
+        const LOCAL_STORAGE_TASKS_KEY = 'medTrackerTasks_v4'; // Incremented for tags
+        const LOCAL_STORAGE_TUTORIAL_KEY = 'medTrackerTutorialShown';
 
         // --- Task Management ---
         let taskIdCounter = 1;
+
+        function renderLucideIcons() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn("Lucide library not yet available for icon rendering. Retrying soon...");
+                // Retry mechanism if lucide is not immediately available
+                setTimeout(renderLucideIcons, 200);
+            }
+        }
 
         function saveTasksToLocalStorage() {
             const tasksToSave = [];
@@ -291,16 +427,17 @@
                             text: textSpan.textContent,
                             priority: taskCard.dataset.priority || 'medium',
                             dueDate: taskCard.dataset.dueDate || '',
+                            tags: taskCard.dataset.tags ? taskCard.dataset.tags.split(',') : [], // Save tags as array
                             column: columnId
                         });
                     }
                 });
             });
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasksToSave));
+            localStorage.setItem(LOCAL_STORAGE_TASKS_KEY, JSON.stringify(tasksToSave));
         }
 
         function loadTasksFromLocalStorage() {
-            const savedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const savedTasks = localStorage.getItem(LOCAL_STORAGE_TASKS_KEY);
             if (savedTasks) {
                 const tasks = JSON.parse(savedTasks);
                 let maxId = 0;
@@ -308,7 +445,8 @@
                     const numericIdString = taskData.id ? taskData.id.split('-')[1] : null;
                     if (numericIdString) {
                         const numericId = parseInt(numericIdString, 10);
-                        const taskElement = createTaskElement(taskData.text, numericId, taskData.priority, taskData.dueDate);
+                        const tagsArray = Array.isArray(taskData.tags) ? taskData.tags : (taskData.tags ? taskData.tags.split(',') : []);
+                        const taskElement = createTaskElement(taskData.text, numericId, taskData.priority, taskData.dueDate, tagsArray);
                         const targetColumn = document.getElementById(taskData.column);
                         if (targetColumn) {
                             targetColumn.appendChild(taskElement);
@@ -324,26 +462,31 @@
             return false; 
         }
 
-        function createTaskElement(taskText, taskId, priority = 'medium', dueDate = '') {
+        function createTaskElement(taskText, taskId, priority = 'medium', dueDate = '', tags = []) {
             const taskCard = document.createElement('div');
-            taskCard.className = 'task-card p-4 rounded-lg shadow-md flex flex-col space-y-2';
+            taskCard.className = 'task-card p-3 rounded-lg shadow-md flex flex-col space-y-1.5'; // Adjusted padding and space
             taskCard.setAttribute('draggable', 'true');
             taskCard.setAttribute('data-task-id', `task-${taskId}`);
             taskCard.setAttribute('data-priority', priority);
             taskCard.setAttribute('data-due-date', dueDate);
+            taskCard.setAttribute('data-tags', tags.join(',')); // Store tags as comma-separated string
 
+            // Task Text Span
             const taskTextSpan = document.createElement('span');
-            taskTextSpan.className = 'task-text font-medium text-gray-50';
+            taskTextSpan.className = 'task-text font-medium text-gray-50 text-sm'; // Slightly smaller text
             taskTextSpan.textContent = taskText;
 
+            // Meta Info (Priority & Due Date)
             const metaInfoDiv = document.createElement('div');
-            metaInfoDiv.className = 'flex flex-wrap items-center gap-x-3 gap-y-1 text-xs';
+            metaInfoDiv.className = 'flex flex-wrap items-center gap-x-2 gap-y-1 text-xs'; // Reduced gap
 
+            // Priority Badge
             const priorityBadge = document.createElement('span');
-            priorityBadge.className = `priority-badge px-2 py-0.5 rounded-full font-semibold ${getPriorityClasses(priority)}`;
+            priorityBadge.className = `priority-badge px-1.5 py-0.5 rounded-full font-semibold text-xs ${getPriorityClasses(priority)}`; // Smaller badge
             priorityBadge.textContent = priority.charAt(0).toUpperCase() + priority.slice(1);
             metaInfoDiv.appendChild(priorityBadge);
 
+            // Due Date Display
             if (dueDate) {
                 const dueDateSpan = document.createElement('span');
                 dueDateSpan.className = 'due-date-text text-gray-400 flex items-center space-x-1';
@@ -357,33 +500,33 @@
                 metaInfoDiv.appendChild(dueDateSpan);
             }
             
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'flex items-center justify-end space-x-2 mt-auto pt-2'; 
+            // Tags Display
+            const tagsDiv = document.createElement('div');
+            tagsDiv.className = 'tags-container flex flex-wrap gap-1 mt-1'; // Margin top for separation
+            if (tags && tags.length > 0) {
+                tags.forEach(tag => {
+                    if (tag.trim() !== '') { // Ensure tag is not empty
+                        const tagBadge = document.createElement('span');
+                        tagBadge.className = 'tag-badge px-1.5 py-0.5 rounded-full';
+                        tagBadge.textContent = tag.trim();
+                        tagsDiv.appendChild(tagBadge);
+                    }
+                });
+            }
 
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-button p-1 rounded hover:bg-gray-600'; 
-            editBtn.title = "Edit task";
-            editBtn.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4"></i>'; 
-            editBtn.onclick = () => openEditModal(taskCard);
-            actionsDiv.appendChild(editBtn);
-
-            // Delete Button - Reverted from "DEL" text to Lucide icon
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-button p-1 rounded hover:bg-gray-600'; 
-            deleteBtn.title = "Delete task";
-            deleteBtn.innerHTML = '<i data-lucide="trash" class="w-4 h-4"></i>'; // Using Lucide icon again
-            deleteBtn.onclick = function() {
-                // console.log("Delete button clicked for task:", taskCard.dataset.taskId); // Debugging log removed
-                taskCard.remove(); 
-                saveTasksToLocalStorage(); 
-            };
-            actionsDiv.appendChild(deleteBtn);
+            // No direct action buttons on card anymore, will use context menu
+            // const actionsDiv = document.createElement('div');
+            // actionsDiv.className = 'flex items-center justify-end space-x-2 mt-auto pt-2'; 
 
             taskCard.appendChild(taskTextSpan);
             taskCard.appendChild(metaInfoDiv);
-            taskCard.appendChild(actionsDiv);
+            if (tags && tags.length > 0 && tags.some(t => t.trim() !== '')) { // Only append if there are actual tags
+                taskCard.appendChild(tagsDiv);
+            }
+            // taskCard.appendChild(actionsDiv); // Actions removed from card
             
             addDragListeners(taskCard); 
+            addContextMenuListener(taskCard); // Add listener for custom right-click menu
             return taskCard; 
         }
 
@@ -403,22 +546,24 @@
             const taskText = newTaskInput.value.trim();
             const priority = newTaskPriorityInput.value;
             const dueDate = newTaskDueDateInput.value;
+            const tagsString = newTaskTagsInput.value.trim();
+            const tagsArray = tagsString ? tagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
+
 
             if (taskText === '') {
                 alert("Please enter a task description."); 
                 return;
             }
-            const newTask = createTaskElement(taskText, taskIdCounter++, priority, dueDate);
+            const newTask = createTaskElement(taskText, taskIdCounter++, priority, dueDate, tagsArray);
             todoTasks.appendChild(newTask); 
             
             newTaskInput.value = '';
             newTaskDueDateInput.value = ''; 
+            newTaskTagsInput.value = '';
             newTaskPriorityInput.value = 'medium'; 
             
             saveTasksToLocalStorage(); 
-            if (typeof lucide !== 'undefined') { 
-                lucide.createIcons(); 
-            }
+            renderLucideIcons(); 
         }
 
         addTaskButton.addEventListener('click', addTaskFromInput);
@@ -430,16 +575,19 @@
             }
         });
 
+        // --- Edit Task Modal Logic ---
         function openEditModal(taskCard) {
+            hideContextMenu(); // Hide context menu if it was open
             currentEditingTaskCard = taskCard; 
             editTaskTextInput.value = taskCard.querySelector('.task-text').textContent;
             editTaskPriorityInput.value = taskCard.dataset.priority || 'medium';
             editTaskDueDateInput.value = taskCard.dataset.dueDate || '';
-            editModal.classList.remove('hidden'); 
+            editTaskTagsInput.value = taskCard.dataset.tags || '';
+            editModal.classList.add('visible'); 
         }
 
         function closeEditModal() {
-            editModal.classList.add('hidden'); 
+            editModal.classList.remove('visible'); 
             currentEditingTaskCard = null; 
         }
 
@@ -448,6 +596,9 @@
                 const newText = editTaskTextInput.value.trim();
                 const newPriority = editTaskPriorityInput.value;
                 const newDueDate = editTaskDueDateInput.value;
+                const newTagsString = editTaskTagsInput.value.trim();
+                const newTagsArray = newTagsString ? newTagsString.split(',').map(tag => tag.trim()).filter(tag => tag !== '') : [];
+
 
                 if (newText === '') {
                     alert("Task text cannot be empty.");
@@ -458,12 +609,12 @@
                 
                 currentEditingTaskCard.dataset.priority = newPriority;
                 const priorityBadge = currentEditingTaskCard.querySelector('.priority-badge');
-                priorityBadge.className = `priority-badge px-2 py-0.5 rounded-full font-semibold ${getPriorityClasses(newPriority)}`;
+                priorityBadge.className = `priority-badge px-1.5 py-0.5 rounded-full font-semibold text-xs ${getPriorityClasses(newPriority)}`;
                 priorityBadge.textContent = newPriority.charAt(0).toUpperCase() + newPriority.slice(1);
 
                 currentEditingTaskCard.dataset.dueDate = newDueDate;
                 let dueDateSpan = currentEditingTaskCard.querySelector('.due-date-text');
-                const metaInfoDiv = currentEditingTaskCard.querySelector('.flex.flex-wrap.items-center.gap-x-3'); 
+                const metaInfoDiv = currentEditingTaskCard.querySelector('.flex.flex-wrap.items-center.gap-x-2'); 
 
                 if (newDueDate) {
                     if (!dueDateSpan) { 
@@ -488,15 +639,98 @@
                 } else if (dueDateSpan) { 
                     dueDateSpan.remove();
                 }
-                
-                if (typeof lucide !== 'undefined') { 
-                    lucide.createIcons(); 
+
+                // Update Tags
+                currentEditingTaskCard.dataset.tags = newTagsArray.join(',');
+                let tagsDiv = currentEditingTaskCard.querySelector('.tags-container');
+                if (!tagsDiv) { // Create tagsDiv if it doesn't exist
+                    tagsDiv = document.createElement('div');
+                    tagsDiv.className = 'tags-container flex flex-wrap gap-1 mt-1';
+                    currentEditingTaskCard.appendChild(tagsDiv); // Append after metaInfoDiv or as appropriate
                 }
+                tagsDiv.innerHTML = ''; // Clear existing tags
+                if (newTagsArray.length > 0) {
+                    newTagsArray.forEach(tag => {
+                        const tagBadge = document.createElement('span');
+                        tagBadge.className = 'tag-badge px-1.5 py-0.5 rounded-full';
+                        tagBadge.textContent = tag;
+                        tagsDiv.appendChild(tagBadge);
+                    });
+                     if (!currentEditingTaskCard.contains(tagsDiv)) { // Ensure it's appended if newly created and not already there
+                        currentEditingTaskCard.appendChild(tagsDiv);
+                    }
+                } else if (currentEditingTaskCard.contains(tagsDiv)) { // If no tags, remove the container
+                    tagsDiv.remove();
+                }
+                
+                renderLucideIcons(); 
                 saveTasksToLocalStorage(); 
                 closeEditModal(); 
             }
         });
         cancelEditButton.addEventListener('click', closeEditModal);
+
+        // --- Tutorial Modal Logic ---
+        function showTutorialModal() {
+            if (!localStorage.getItem(LOCAL_STORAGE_TUTORIAL_KEY)) {
+                tutorialModal.classList.add('visible');
+            }
+        }
+        closeTutorialButton.addEventListener('click', () => {
+            tutorialModal.classList.remove('visible');
+            localStorage.setItem(LOCAL_STORAGE_TUTORIAL_KEY, 'true');
+        });
+
+        // --- Custom Context Menu Logic ---
+        function addContextMenuListener(taskCard) {
+            taskCard.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Prevent default browser right-click menu
+                currentContextMenuTaskCard = taskCard; // Store which task was clicked
+                
+                // Position the menu: Add scroll offsets for correct positioning
+                const scrollX = window.scrollX || window.pageXOffset;
+                const scrollY = window.scrollY || window.pageYOffset;
+                customContextMenu.style.left = `${e.clientX + scrollX}px`;
+                customContextMenu.style.top = `${e.clientY + scrollY}px`;
+                customContextMenu.style.display = 'block';
+                renderLucideIcons(); // Ensure icons in context menu are rendered
+            });
+        }
+
+        function hideContextMenu() {
+            customContextMenu.style.display = 'none';
+            currentContextMenuTaskCard = null;
+        }
+
+        // Close context menu if clicking anywhere else on the page
+        document.addEventListener('click', (e) => {
+            if (customContextMenu.style.display === 'block' && !customContextMenu.contains(e.target)) {
+                hideContextMenu();
+            }
+        });
+        // Close context menu on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && customContextMenu.style.display === 'block') {
+                hideContextMenu();
+            }
+        });
+
+
+        contextEditButton.addEventListener('click', () => {
+            if (currentContextMenuTaskCard) {
+                openEditModal(currentContextMenuTaskCard);
+            }
+            hideContextMenu();
+        });
+
+        contextDeleteButton.addEventListener('click', () => {
+            if (currentContextMenuTaskCard) {
+                currentContextMenuTaskCard.remove();
+                saveTasksToLocalStorage();
+            }
+            hideContextMenu();
+        });
+
 
         clearDoneButton.addEventListener('click', () => {
             if (confirm("Are you sure you want to clear all tasks in the 'Done' column?")) {
@@ -511,7 +745,9 @@
 
         function addDragListeners(taskCard) {
             taskCard.addEventListener('dragstart', (e) => {
-                 if (e.target.closest('.edit-button, .delete-button')) { 
+                 // Prevent dragging if the click originated on an interactive element within the card
+                 // (though we removed direct buttons, this is good practice if they are re-added)
+                 if (e.target.closest('button')) { 
                     e.preventDefault(); 
                     return;
                  }
@@ -520,7 +756,7 @@
                 setTimeout(() => {
                     if(draggedItem) draggedItem.classList.add('dragging');
                 }, 0);
-                trashArea.classList.add('visible'); // Show trash area on drag start
+                trashArea.classList.add('visible'); 
             });
 
             taskCard.addEventListener('dragend', () => {
@@ -535,8 +771,8 @@
                 }
                  columns.forEach(col => col.classList.remove('drag-over')); 
                  taskContainers.forEach(cont => cont.parentElement.classList.remove('drag-over')); 
-                 trashArea.classList.remove('visible'); // Hide trash area on drag end
-                 trashArea.classList.remove('trash-over'); // Ensure trash-over is removed
+                 trashArea.classList.remove('visible'); 
+                 trashArea.classList.remove('trash-over'); 
             });
         }
 
@@ -594,8 +830,8 @@
 
         // --- Trash Area Drag and Drop Logic ---
         trashArea.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Allow dropping
-            if (draggedItem) { // Only highlight if a task is being dragged
+            e.preventDefault(); 
+            if (draggedItem) { 
                 trashArea.classList.add('trash-over');
             }
         });
@@ -607,13 +843,10 @@
         trashArea.addEventListener('drop', (e) => {
             e.preventDefault();
             if (draggedItem) {
-                draggedItem.remove(); // Remove the task card from the DOM
-                saveTasksToLocalStorage(); // Update localStorage
-                // Optionally, play a sound or show a small "deleted" message
-                console.log(`Task ${draggedItem.dataset.taskId} deleted by dragging to trash.`);
+                draggedItem.remove(); 
+                saveTasksToLocalStorage(); 
             }
             trashArea.classList.remove('trash-over');
-            trashArea.classList.remove('visible'); // Hide trash after drop
         });
 
 
@@ -707,27 +940,31 @@
 
         // --- Initial Setup ---
         function initializeBoard() {
+            // Initially hide modals that are controlled by JS
+            editModal.classList.remove('visible');
+            tutorialModal.classList.remove('visible');
+
             if (!loadTasksFromLocalStorage()) {
                 const initialTasks = [
-                    { text: "Take Morning Vitamins", priority: "high", dueDate: new Date().toISOString().split('T')[0], columnId: "todo-tasks" },
-                    { text: "Evening Statin Pill", priority: "medium", dueDate: "", columnId: "todo-tasks" },
-                    { text: "Schedule Doctor Appointment", priority: "low", dueDate: "", columnId: "inprogress-tasks" },
-                    { text: "Refill Metformin Prescription", priority: "high", dueDate: "", columnId: "done-tasks" }
+                    { text: "Take Morning Vitamins", priority: "high", dueDate: new Date().toISOString().split('T')[0], tags: ["morning", "health"], columnId: "todo-tasks" },
+                    { text: "Evening Statin Pill", priority: "medium", dueDate: "", tags: ["evening", "prescription"], columnId: "todo-tasks" },
+                    { text: "Schedule Doctor Appointment", priority: "low", dueDate: "", tags: ["appointment"], columnId: "inprogress-tasks" },
+                    { text: "Refill Metformin Prescription", priority: "high", dueDate: "", tags: ["prescription", "pharmacy"], columnId: "done-tasks" }
                 ];
                 initialTasks.forEach(task => {
-                    const taskElement = createTaskElement(task.text, taskIdCounter++, task.priority, task.dueDate);
+                    const taskElement = createTaskElement(task.text, taskIdCounter++, task.priority, task.dueDate, task.tags);
                     document.getElementById(task.columnId).appendChild(taskElement);
                 });
                 saveTasksToLocalStorage(); 
             }
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons(); 
-            } else {
-                console.error("Lucide library not loaded at initializeBoard. Icons may not render.");
-            }
+            showTutorialModal(); // Show tutorial if it's the first visit
         }
 
         document.addEventListener('DOMContentLoaded', initializeBoard);
+
+        window.addEventListener('load', () => {
+            renderLucideIcons(); 
+        });
 
     </script>
 
